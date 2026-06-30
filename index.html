@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>منصة احتفال كأس العالم التفاعلية</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -10,24 +10,25 @@
             margin: 0; padding: 0; overflow: hidden;
             background: radial-gradient(circle, #240a34 0%, #0b0114 100%);
             color: white; font-family: sans-serif; text-align: center;
-            touch-action: none; user-select: none;
+            user-select: none; -webkit-user-select: none;
         }
         #setup-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(11, 1, 20, 0.95); display: flex;
+            background: rgba(11, 1, 20, 0.98); display: flex;
             flex-direction: column; justify-content: center; align-items: center; z-index: 100;
         }
-        h2 { color: #ffd700; }
+        h2 { color: #ffd700; font-size: 28px; margin-bottom: 20px; }
         select, button {
-            padding: 12px 25px; font-size: 18px; border-radius: 25px;
+            padding: 15px 30px; font-size: 20px; border-radius: 25px;
             border: 2px solid #ffd700; background: #240a34; color: white; cursor: pointer; margin: 10px;
         }
+        button { background: #ffd700; color: #240a34; font-weight: bold; }
         #game-screen { position: relative; width: 100vw; height: 100vh; display: none; }
-        #status { position: absolute; top: 5%; width: 100%; font-size: 22px; font-weight: bold; z-index: 10; }
-        #trophy-container { position: absolute; bottom: 35%; left: 50%; transform: translateX(-50%); width: 180px; z-index: 5; }
-        #trophy { width: 100%; filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6)); }
-        #players-container { position: absolute; bottom: 5%; width: 100%; display: flex; justify-content: center; gap: 20px; z-index: 10; }
-        .player-card { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #ffd700; overflow: hidden; background: #111; }
+        #status { position: absolute; top: 5%; width: 100%; font-size: 22px; font-weight: bold; z-index: 10; padding: 0 10px; box-sizing: border-box; }
+        #trophy-container { position: absolute; bottom: 35%; left: 50%; transform: translateX(-50%); width: 160px; z-index: 5; cursor: grab; touch-action: none; }
+        #trophy { width: 100%; pointer-events: none; filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6)); }
+        #players-container { position: absolute; bottom: 5%; width: 100%; display: flex; justify-content: center; gap: 15px; z-index: 10; flex-wrap: wrap; }
+        .player-card { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #ffd700; overflow: hidden; background: #111; }
         .player-card img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
@@ -35,15 +36,19 @@
 
     <div id="setup-screen">
         <h2>🏆 تجهيز منصة التتويج 🏆</h2>
-        <label for="player-count">اختر عدد اللاعبين:</label>
+        <label for="player-count" style="font-size: 18px;">اختر عدد اللاعبين لرفع الكأس:</label>
         <select id="player-count">
-            <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4" selected>4</option> <option value="5">5</option>
+            <option value="1">1 (لتجربة الكمبيوتر والماوس)</option> 
+            <option value="2">2</option> 
+            <option value="3">3</option> 
+            <option value="4" selected>4 لاعبيين</option> 
+            <option value="5">5</option>
         </select>
-        <button onclick="startGame()">ابدأ الاحتفال 🔥</button>
+        <button id="start-btn">ابدأ الاحتفال 🔥</button>
     </div>
 
     <div id="game-screen">
-        <div id="status">ضعوا أصابعكم على الكأس وحركوه معاً!</div>
+        <div id="status">في انتظار اللاعبين...</div>
         <div id="trophy-container">
             <img id="trophy" src="https://upload.wikimedia.org/wikipedia/commons/e/ec/World_Cup_trophy_icon.png" alt="كأس العالم">
         </div>
@@ -57,6 +62,11 @@
         const trophyContainer = document.getElementById('trophy-container');
         const statusText = document.getElementById('status');
         const playersContainer = document.getElementById('players-container');
+        const startBtn = document.getElementById('start-btn');
+
+        // دعم الضغط على الجوال والكمبيوتر للزر
+        startBtn.addEventListener('click', startGame);
+        startBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); });
 
         function startGame() {
             requiredTouches = parseInt(document.getElementById('player-count').value);
@@ -75,28 +85,46 @@
                 card.appendChild(img);
                 playersContainer.appendChild(card);
             }
+            statusText.innerHTML = `مطلوب وضع ${requiredTouches} أصابع على الشاشة وسحب الكأس!`;
         }
 
-        window.addEventListener('touchmove', handleTouch, { passive: false });
+        // --- دعم تحريك اللمس الجماعي (للجوالات) ---
         window.addEventListener('touchstart', handleTouch, { passive: false });
+        window.addEventListener('touchmove', handleTouch, { passive: false });
         window.addEventListener('touchend', (e) => {
             if(e.touches.length < requiredTouches) statusText.innerHTML = `مطلوب وضع عدد الأصابع: (${e.touches.length} من أصل ${requiredTouches})`;
         });
 
         function handleTouch(e) {
-            e.preventDefault();
             let activeTouches = e.touches.length;
             if (activeTouches >= requiredTouches) {
+                e.preventDefault();
                 statusText.innerHTML = "🔥 واااااو! احتفااااال بطل الـ Mix Cup! 🔥";
                 let sumX = 0;
                 for (let i = 0; i < activeTouches; i++) { sumX += e.touches[i].clientX; }
                 let avgX = sumX / activeTouches;
                 trophyContainer.style.left = avgX + 'px';
-                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0, y: 0.8 } });
-                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } });
+                triggerCelebration();
             } else {
                 statusText.innerHTML = `مطلوب وضع عدد الأصابع: (${activeTouches} من أصل ${requiredTouches})`;
             }
+        }
+
+        // --- دعم الماوس (للكمبيوتر فقط - اختر لاعب 1 للتجربة) ---
+        let isDragging = false;
+        trophyContainer.addEventListener('mousedown', (e) => { if(requiredTouches === 1) isDragging = true; });
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging && requiredTouches === 1) {
+                statusText.innerHTML = "🔥 واااااو! احتفااااال بطل الـ Mix Cup! 🔥";
+                trophyContainer.style.left = e.clientX + 'px';
+                triggerCelebration();
+            }
+        });
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        function triggerCelebration() {
+            confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.8 } });
+            confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } });
         }
     </script>
 </body>
